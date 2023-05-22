@@ -22,11 +22,6 @@ class RegisterController extends AbstractController
      */
     private $entityManager;
 
-    /**
-     * @var LoggerInterface
-     */
-    private $logger;
-
     public function __construct(
         EntityManagerInterface $entityManager
     )
@@ -37,44 +32,18 @@ class RegisterController extends AbstractController
    /**
      * @Route("/api/register", name="api_register", methods={"POST"})
      */
-    public function register(Request $request, ApiSerializer $serializer): JsonResponse
+    public function register(Request $request)
     {
-        $apiResponse = new ApiResponse();
-        $responseCode = 200;
-        $requestData = json_decode($request->getContent(), true);
-
-        /** co jesli uzytkownik o danym mailu/nickname jest zarejestrowany  */
-
-        try {
-
-            $user = new User();
-            $user->setNickname($requestData['nickname']);
-            $user->setEmail($requestData['email']);
-            $user->setPassword($requestData['password']);
-            
-        } catch (\TypeError $ex) {
-            $this->logger->error($ex->getMessage(), ['api_code' => 400]);
-            $apiResponse->setMessage($ex->getMessage());
-            $responseCode = 400;
-        } catch (NotEncodableValueException $ex) {
-            $this->logger->error($ex->getMessage(), ['api_code' => 400]);
-            $apiResponse->setMessage($ex->getMessage());
-            $responseCode = 400;
-        } catch (ValidatorException $ex) {
-            $this->logger->error($ex->getMessage(), ['api_code' => 400]);
-            $apiResponse->setMessage($ex->getMessage());
-            $responseCode = 400;
-        } catch (\Exception $ex) {
-            $this->logger->error($ex->getMessage(), ['api_code' => 500]);
-            $apiResponse->setMessage(ResponseCode::GENERAL_ERROR);
-            $responseCode = 500;
-        }
         
+        $requestData = json_decode($request->getContent(), true);
+        $user = new User();
+        $user->setNickname($requestData['nickname']);
+        $user->setEmail($requestData['email']);
+        $user->setPassword($requestData['password']);
+
 
         $this->entityManager->persist($user);
         $this->entityManager->flush();
-
-        return $this->json($apiResponse, $responseCode);
-       
+        return $this->json(['message' => 'User registered successfully']);
     }
 }
