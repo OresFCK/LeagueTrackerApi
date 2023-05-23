@@ -3,30 +3,32 @@
 namespace App\Controller;
 
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Doctrine\ORM\EntityManagerInterface;
-use App\Entity\User;
-use Symfony\Component\HttpFoundation\JsonResponse;
+use App\Repository\UserRepository;
 use Symfony\Component\HttpFoundation\Request;
-use App\Api\ApiResponse;
-use App\Api\ApiSerializer;
-use App\Api\ResponseCode;
-use Psr\Log\LoggerInterface;
-use Symfony\Component\Serializer\Exception\NotEncodableValueException;
-use Symfony\Component\Validator\Exception\ValidatorException;
+use App\Entity\User;
 
-class RegisterController extends AbstractController
+class UserController extends AbstractController
 {
-    /**
-     * @var entityManager
+   /**
+     * @var EntityManager
      */
     private $entityManager;
 
+   /**
+     * @var UserRepository
+     */
+    private $userRepository;
+
     public function __construct(
-        EntityManagerInterface $entityManager
+        EntityManagerInterface $entityManager,
+        UserRepository $userRepository,
     )
     {
         $this->entityManager = $entityManager;
+        $this->userRepository = $userRepository;
     }
 
    /**
@@ -45,5 +47,22 @@ class RegisterController extends AbstractController
         $this->entityManager->persist($user);
         $this->entityManager->flush();
         return $this->json(['message' => 'User registered successfully']);
+    }
+
+
+    /**
+     * @Route("/api/login", methods={"POST"})
+     */
+    public function login(Request $request): Response
+    {
+
+        $requestData = json_decode($request->getContent(), true);
+        $user = $this->userRepository->findOneBy(['email' => $requestData['email']]);
+
+        if (!$user) {
+            throw new BadCredentialsException('Invalid username or password');
+        }
+
+        return $this->json(['message' => 'Login successful']);
     }
 }
