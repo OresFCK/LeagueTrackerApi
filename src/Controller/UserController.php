@@ -10,6 +10,11 @@ use App\Repository\UserRepository;
 use Symfony\Component\HttpFoundation\Request;
 use App\Entity\User;
 use Symfony\Component\Security\Core\Exception\BadCredentialsException;
+use App\Api\ApiResponse;
+use App\Api\ApiSerializer;
+use App\Api\ResponseCode;
+use Exception;
+use Psr\Log\LoggerInterface;
 
 class UserController extends AbstractController
 {
@@ -22,6 +27,11 @@ class UserController extends AbstractController
      * @var UserRepository
      */
     private $userRepository;
+
+    /**
+     * @var LoggerInterface
+     */
+    private $logger;
 
     public function __construct(
         EntityManagerInterface $entityManager,
@@ -37,17 +47,29 @@ class UserController extends AbstractController
      */
     public function register(Request $request)
     {
+        $apiResponse = new ApiResponse();
+        $responseCode = 200;
+
+        try {
+            $requestData = json_decode($request->getContent(), true);
+            $user = new User();
+            $user->setNickname($requestData['nickname']);
+            $user->setEmail($requestData['email']);
+            $user->setPassword($requestData['password']);
+
+            $apiResponse->setSuccess(true);
+            $this->entityManager->persist($user);
+            $this->entityManager->flush();
+            
+        } catch (Exception $ex) {
+
+            $this->logger->error($ex->getMessage(), ['api_code' => Response::HTTP_INTERNAL_SERVER_ERROR]);
+            $apiResponse->setMessage(ResponseCode::GENERAL_ERROR);
+            $responseCode = 500;
+
+        }
         
-        $requestData = json_decode($request->getContent(), true);
-        $user = new User();
-        $user->setNickname($requestData['nickname']);
-        $user->setEmail($requestData['email']);
-        $user->setPassword($requestData['password']);
-
-
-        $this->entityManager->persist($user);
-        $this->entityManager->flush();
-        return $this->json(['message' => 'User registered successfully']);
+        return $this->json($apiResponse, $responseCode);
     }
 
 
